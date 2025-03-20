@@ -1,0 +1,14 @@
+{
+  "name": "monicraft",
+  "version": "1.0.0",
+  "description": "Bot Discord pour gérer des serveurs Minecraft",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^9.2.2",
+    "discord.js": "^14.14.1",
+    "node-mcstatus": "^1.2.1"
+  }
+}

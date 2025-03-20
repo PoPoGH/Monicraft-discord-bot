@@ -1,0 +1,10 @@
+{
+  "token": "VOTRE_TOKEN_DISCORD_ICI",
+  "clientId": "ID_DE_VOTRE_BOT",
+  "adminIds": ["ID_ADMIN_1", "ID_ADMIN_2"],
+  "updateInterval": 300000,
+  "embedColor": "#3498db",
+  "devGuildIds": ["ID_SERVEUR_1", "ID_SERVEUR_2"],
+  "isDev": false,
+  "autoDeployCommands": true
+}
