@@ -21,7 +21,7 @@ async function checkServerStatus(ip, port, timeout = 5000) {
         return {
             online: true,
             players: status.players,
-            version: status.version.name_text,
+            version: status.version ? status.version.name_text : 'Inconnu',
             ping: status.ping,
             favicon: status.favicon || null
         };
@@ -29,7 +29,11 @@ async function checkServerStatus(ip, port, timeout = 5000) {
         console.error(`Erreur lors de la vérification du serveur ${ip}:${port}:`, error);
         return {
             online: false,
-            error: error.message
+            error: error.message,
+            players: { online: 0, max: 0 },
+            version: 'Inconnu',
+            ping: 0,
+            favicon: null
         };
     }
 }
@@ -44,6 +48,23 @@ async function updateAllServersStatus() {
         const updatedServers = [];
 
         for (const server of servers) {
+            // Ne pas mettre à jour automatiquement les serveurs en maintenance
+            if (server.status === 'maintenance') {
+                // Pour les serveurs en maintenance, on garde le statut actuel
+                updatedServers.push({
+                    ...server,
+                    statusInfo: {
+                        online: false,
+                        players: { online: 0, max: 0 },
+                        version: 'Inconnu',
+                        ping: 0,
+                        favicon: null
+                    }
+                });
+                continue;
+            }
+            
+            // Pour les autres serveurs, vérifier leur statut réel
             const status = await checkServerStatus(server.ip, server.port);
             const newStatus = status.online ? 'online' : 'offline';
             

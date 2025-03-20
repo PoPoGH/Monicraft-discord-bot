@@ -211,6 +211,23 @@ function getAllEmbedMessages() {
 }
 
 /**
+ * Récupère tous les messages d'embed pour un serveur spécifique
+ * @param {number} serverId - ID du serveur
+ * @returns {Array} - Liste des messages d'embed pour ce serveur
+ */
+function getEmbedMessagesByServerId(serverId) {
+    try {
+        const stmt = db.prepare(`
+            SELECT * FROM embed_messages WHERE server_id = ?
+        `);
+        return stmt.all(serverId);
+    } catch (error) {
+        console.error(`Erreur lors de la récupération des messages d'embed pour le serveur ${serverId}:`, error);
+        return [];
+    }
+}
+
+/**
  * Met à jour l'ID d'un message d'embed
  * @param {number} id - ID de l'entrée dans la table embed_messages
  * @param {string} messageId - Nouvel ID du message Discord
@@ -236,5 +253,6 @@ module.exports = {
     deleteServer,
     addEmbedMessage,
     getAllEmbedMessages,
+    getEmbedMessagesByServerId,
     updateEmbedMessageId
 };

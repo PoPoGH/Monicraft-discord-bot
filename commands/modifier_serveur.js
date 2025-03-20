@@ -2,7 +2,7 @@
  * Commande pour modifier les informations d'un serveur Minecraft existant
  */
 
-const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
+const { SlashCommandBuilder, PermissionFlagsBits, ChannelType } = require('discord.js');
 const db = require('../database');
 const config = require('../config.json');
 const { checkServerStatus } = require('../utils/minecraft');
@@ -31,7 +31,12 @@ module.exports = {
         .addStringOption(option => 
             option.setName('valeur')
                 .setDescription('Nouvelle valeur pour le champ')
-                .setRequired(true)),
+                .setRequired(true))
+        .addChannelOption(option => 
+            option.setName('salon_annonce')
+                .setDescription('Salon où envoyer l\'annonce (pour les mises à jour de version)')
+                .addChannelTypes(ChannelType.GuildText)
+                .setRequired(false)),
     
     // Gestion de l'autocomplétion
     async autocomplete(interaction) {
@@ -107,22 +112,39 @@ module.exports = {
                         // Récupérer le serveur mis à jour pour avoir les informations les plus récentes
                         const updatedServer = db.getServerByName(serverName);
                         
+                        // Récupérer le salon d'annonce spécifié ou utiliser le salon actuel
+                        const announcementChannel = interaction.options.getChannel('salon_annonce') || interaction.channel;
+                        
+                        // Vérifier les permissions dans le salon d'annonce
+                        const permissions = announcementChannel.permissionsFor(interaction.client.user);
+                        if (!permissions.has(PermissionFlagsBits.SendMessages) || 
+                            !permissions.has(PermissionFlagsBits.ViewChannel) || 
+                            !permissions.has(PermissionFlagsBits.EmbedLinks)) {
+                            return interaction.editReply({
+                                content: `✅ **La version du modpack du serveur "${serverName}" a été mise à jour avec succès !**\n` +
+                                        `📝 **Nouvelle version :** ${newValue}\n` +
+                                        `⚠️ Impossible d'envoyer l'annonce: Je n'ai pas les permissions nécessaires dans le salon ${announcementChannel}.`
+                            });
+                        }
+                        
                         // Créer un embed pour l'annonce de mise à jour du modpack
                         const title = `📢 Mise à jour du modpack pour ${serverName}`;
                         const description = `@everyone\n\nLe modpack du serveur **${serverName}** a été mis à jour vers la version **${newValue}**.\n\n${updatedServer.modpack_link ? `Lien du modpack: ${updatedServer.modpack_link}` : ''}`;
                         const embed = createAnnouncementEmbed(title, description, '#ff9900');
                         
-                        // Envoyer l'annonce dans le même canal que l'interaction
-                        await interaction.channel.send({ 
+                        // Envoyer l'annonce dans le salon spécifié
+                        await announcementChannel.send({ 
                             content: '@everyone',
                             embeds: [embed],
                             allowedMentions: { parse: ['everyone'] }
                         });
                         
+                        // Message de confirmation différent selon que l'annonce a été envoyée dans le même salon ou un autre
+                        const sameChannel = announcementChannel.id === interaction.channel.id;
                         return interaction.editReply({
                             content: `✅ **La version du modpack du serveur "${serverName}" a été mise à jour avec succès !**\n` +
                                     `📝 **Nouvelle version :** ${newValue}\n` +
-                                    `📣 Une annonce a été publiée dans ce canal.`
+                                    `📣 Une annonce a été publiée ${sameChannel ? 'dans ce salon' : `dans le salon ${announcementChannel}`}.`
                         });
                     } catch (announceError) {
                         console.error('Erreur lors de l\'envoi de l\'annonce:', announceError);

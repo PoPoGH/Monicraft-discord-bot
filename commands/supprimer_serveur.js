@@ -2,7 +2,7 @@
  * Commande pour supprimer un serveur Minecraft de la base de données
  */
 
-const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
+const { SlashCommandBuilder, PermissionFlagsBits, ChannelType } = require('discord.js');
 const db = require('../database');
 const config = require('../config.json');
 
@@ -68,13 +68,54 @@ module.exports = {
                 return interaction.editReply(`❌ Le serveur "${serverName}" n'existe pas dans la base de données.`);
             }
 
-            // Supprimer le serveur
+            // Récupérer tous les embeds associés à ce serveur
+            const embedMessages = db.getEmbedMessagesByServerId(server.id);
+            let deletedEmbeds = 0;
+            let failedEmbeds = 0;
+
+            // Supprimer les embeds Discord
+            if (embedMessages.length > 0) {
+                await interaction.editReply(`🔄 Suppression des embeds associés au serveur "${serverName}"...`);
+                
+                for (const embedMsg of embedMessages) {
+                    try {
+                        // Récupérer le salon
+                        const channel = await interaction.client.channels.fetch(embedMsg.channel_id).catch(() => null);
+                        
+                        if (channel) {
+                            // Récupérer et supprimer le message
+                            const message = await channel.messages.fetch(embedMsg.message_id).catch(() => null);
+                            if (message) {
+                                await message.delete();
+                                deletedEmbeds++;
+                            } else {
+                                failedEmbeds++;
+                            }
+                        } else {
+                            failedEmbeds++;
+                        }
+                    } catch (error) {
+                        console.error(`Erreur lors de la suppression de l'embed ${embedMsg.id}:`, error);
+                        failedEmbeds++;
+                    }
+                }
+            }
+
+            // Supprimer le serveur de la base de données
             const result = db.deleteServer(server.id);
             
             if (result.success) {
-                return interaction.editReply({
-                    content: `🗑️ **Le serveur "${serverName}" a été supprimé avec succès !**`
-                });
+                let message = `🗑️ **Le serveur "${serverName}" a été supprimé avec succès !**`;
+                
+                // Ajouter des informations sur les embeds supprimés si nécessaire
+                if (embedMessages.length > 0) {
+                    message += `\n📊 **Embeds supprimés :** ${deletedEmbeds}/${embedMessages.length}`;
+                    if (failedEmbeds > 0) {
+                        message += `\n⚠️ ${failedEmbeds} embed(s) n'ont pas pu être supprimés (messages ou salons introuvables).`;
+                    }
+                }
+                
+                return interaction.editReply({ content: message });
             } else {
                 return interaction.editReply(`❌ Erreur lors de la suppression du serveur : ${result.error}`);
             }

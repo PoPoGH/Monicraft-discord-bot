@@ -7,9 +7,10 @@ Un bot Discord avancé pour gérer plusieurs serveurs Minecraft avec support pou
 ### 1. Gestion des Serveurs Minecraft
 - Ajout dynamique de serveurs via la commande `/ajouter_serveur` avec support pour les modpacks
 - Modification des informations d'un serveur existant avec `/modifier_serveur`
-- Suppression de serveurs avec `/supprimer_serveur`
+- Suppression de serveurs avec `/supprimer_serveur` (supprime également les embeds associés)
 - Vérification de l'état des serveurs avec `/serveur`
 - Affichage auto-actualisé de l'état des serveurs dans un salon avec `/afficher_serveur`
+- Mode maintenance pour les serveurs avec `/maintenance_serveur`
 - Persistance des données après redémarrage du bot
 - Annonce automatique lors de la mise à jour de la version du modpack
 
@@ -120,21 +121,23 @@ Ajoute un serveur Minecraft à la liste des serveurs surveillés.
 
 ### `/modifier_serveur`
 Modifie les informations d'un serveur existant.
-- **Utilisation** : `/modifier_serveur nom:MonServeur champ:modpack_version valeur:1.1`
+- **Utilisation** : `/modifier_serveur nom:MonServeur champ:modpack_version valeur:1.1 salon_annonce:#annonces`
 - **Permissions** : Réservé aux utilisateurs dont l'ID est dans `adminIds`
 - **Options** :
   - `nom` : Nom du serveur à modifier (requis)
   - `champ` : Champ à modifier (requis) - Choix: Adresse IP, Port, Version du modpack, Lien du modpack
   - `valeur` : Nouvelle valeur pour le champ (requis)
+  - `salon_annonce` : Salon où envoyer l'annonce (optionnel, pour les mises à jour de version)
 - **Fonctionnalité spéciale** : Lorsque la version du modpack est modifiée, une annonce avec @everyone est automatiquement envoyée
 
 ### `/supprimer_serveur`
-Supprime un serveur de la liste des serveurs surveillés.
+Supprime un serveur de la liste des serveurs surveillés et tous les embeds associés.
 - **Utilisation** : `/supprimer_serveur nom:MonServeur confirmation:true`
 - **Permissions** : Réservé aux utilisateurs dont l'ID est dans `adminIds`
 - **Options** :
   - `nom` : Nom du serveur à supprimer (requis)
   - `confirmation` : Confirmation de la suppression (requis, doit être true pour confirmer)
+- **Fonctionnalité spéciale** : Supprime également tous les embeds Discord associés au serveur
 
 ### `/serveur`
 Affiche l'état d'un serveur Minecraft.
@@ -156,6 +159,29 @@ Crée une annonce manuelle avec un embed personnalisé (pour les événements, m
   - `couleur` : Couleur de l'embed (optionnel) - Noms de couleurs Discord (RED, GREEN, BLUE, etc.) ou codes HEX (#ff0000)
 - **Note** : Pour les annonces de mise à jour de modpack, utilisez plutôt `/modifier_serveur` qui génère automatiquement une annonce
 
+### `/maintenance_serveur`
+Met un serveur Minecraft en mode maintenance pour mise à jour du modpack.
+- **Utilisation** : `/maintenance_serveur nom:MonServeur activer:true raison:Mise à jour du modpack salon_annonce:#annonces`
+- **Permissions** : Réservé aux utilisateurs dont l'ID est dans `adminIds`
+- **Options** :
+  - `nom` : Nom du serveur à mettre en maintenance (requis)
+  - `activer` : Activer (true) ou désactiver (false) le mode maintenance (requis)
+  - `raison` : Raison de la maintenance (optionnel)
+  - `salon_annonce` : Salon où envoyer l'annonce de maintenance (optionnel)
+- **Fonctionnalité spéciale** : 
+  - Affiche le serveur comme étant en maintenance dans les embeds auto-actualisés
+  - Envoie une annonce avec @everyone pour informer les utilisateurs de la maintenance
+  - Empêche la mise à jour automatique du statut du serveur pendant la maintenance
+
+### `/supprimer_message`
+Supprime un message posté par le bot (utile pour supprimer des annonces obsolètes).
+- **Utilisation** : `/supprimer_message message_id:123456789012345678 salon:#annonces`
+- **Permissions** : Réservé aux utilisateurs dont l'ID est dans `adminIds`
+- **Options** :
+  - `message_id` : ID du message à supprimer (requis)
+  - `salon` : Salon où se trouve le message (optionnel, par défaut: salon actuel)
+- **Note** : Le bot ne peut supprimer que ses propres messages
+
 ## 🔄 Redémarrages et Maintenance
 
 - Les données des serveurs sont stockées dans une base de données SQLite
@@ -165,25 +191,27 @@ Crée une annonce manuelle avec un embed personnalisé (pour les événements, m
 ## 🛠️ Structure du Projet
 
 ```
-├── commands/                # Commandes du bot
-│   ├── ajouter_serveur.js   # Commande pour ajouter un serveur
-│   ├── modifier_serveur.js  # Commande pour modifier un serveur existant
-│   ├── supprimer_serveur.js # Commande pour supprimer un serveur
-│   ├── serveur.js           # Commande pour vérifier l'état d'un serveur
-│   ├── afficher_serveur.js  # Commande pour créer un embed auto-actualisé
-│   ├── annonce.js           # Commande pour créer une annonce
-│   └── index.js             # Gestionnaire de commandes
-├── utils/                   # Utilitaires
-│   ├── minecraft.js         # Fonctions pour interagir avec les serveurs Minecraft
-│   └── embeds.js            # Fonctions pour créer des embeds Discord
-├── data/                    # Dossier pour la base de données (créé automatiquement)
-├── logs/                    # Dossier pour les logs (créé automatiquement)
-├── config.json              # Configuration du bot
-├── database.js              # Module de gestion de la base de données
-├── deploy-commands.js       # Script pour déployer les commandes slash
-├── index.js                 # Point d'entrée du bot
-├── package.json             # Dépendances du projet
-└── README.md                # Documentation
+├── commands/                   # Commandes du bot
+│   ├── ajouter_serveur.js      # Commande pour ajouter un serveur
+│   ├── modifier_serveur.js     # Commande pour modifier un serveur existant
+│   ├── supprimer_serveur.js    # Commande pour supprimer un serveur
+│   ├── serveur.js              # Commande pour vérifier l'état d'un serveur
+│   ├── afficher_serveur.js     # Commande pour créer un embed auto-actualisé
+│   ├── annonce.js              # Commande pour créer une annonce
+│   ├── maintenance_serveur.js  # Commande pour mettre un serveur en maintenance
+│   ├── supprimer_message.js    # Commande pour supprimer un message du bot
+│   └── index.js                # Gestionnaire de commandes
+├── utils/                      # Utilitaires
+│   ├── minecraft.js            # Fonctions pour interagir avec les serveurs Minecraft
+│   └── embeds.js               # Fonctions pour créer des embeds Discord
+├── data/                       # Dossier pour la base de données (créé automatiquement)
+├── logs/                       # Dossier pour les logs (créé automatiquement)
+├── config.json                 # Configuration du bot
+├── database.js                 # Module de gestion de la base de données
+├── deploy-commands.js          # Script pour déployer les commandes slash
+├── index.js                    # Point d'entrée du bot
+├── package.json                # Dépendances du projet
+└── README.md                   # Documentation
 ```
 
 ## 📚 Dépendances Principales

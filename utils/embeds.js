@@ -12,9 +12,19 @@ const config = require('../config.json');
  * @returns {EmbedBuilder} - L'embed Discord
  */
 function createServerStatusEmbed(server, statusInfo) {
+    // Déterminer la couleur en fonction du statut
+    let embedColor;
+    if (server.status === 'maintenance') {
+        embedColor = '#f39c12'; // Orange pour la maintenance
+    } else if (statusInfo.online) {
+        embedColor = '#2ecc71'; // Vert pour en ligne
+    } else {
+        embedColor = '#e74c3c'; // Rouge pour hors ligne
+    }
+
     const embed = new EmbedBuilder()
         .setTitle(`📢 État du Serveur "${server.name}"`)
-        .setColor(statusInfo.online ? '#2ecc71' : '#e74c3c')
+        .setColor(embedColor)
         .setFooter({ text: `Dernière mise à jour: ${new Date().toLocaleString()}` });
 
     // Ajouter l'adresse du serveur
@@ -35,7 +45,16 @@ function createServerStatusEmbed(server, statusInfo) {
         });
     }
 
-    if (statusInfo.online) {
+    // Afficher les informations en fonction du statut
+    if (server.status === 'maintenance') {
+        // Serveur en maintenance
+        embed.setDescription('🔧 **Le serveur est actuellement en maintenance.**');
+        embed.addFields({ 
+            name: '⏱️ Statut', 
+            value: 'En maintenance - Veuillez patienter' 
+        });
+    } else if (statusInfo.online) {
+        // Serveur en ligne
         // Ajouter les informations des joueurs
         embed.addFields({ 
             name: '👥 Joueurs connectés', 
@@ -55,8 +74,6 @@ function createServerStatusEmbed(server, statusInfo) {
                 value: statusInfo.version 
             });
         }
-
-        // Nous n'affichons plus le MOTD (description) du serveur
     } else {
         // Serveur hors ligne
         embed.setDescription('⚠️ **Le serveur est actuellement hors ligne ou inaccessible.**');

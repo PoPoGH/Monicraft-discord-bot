@@ -72,7 +72,50 @@ async function updateAllServerEmbeds() {
                     continue;
                 }
                 
-                // Vérifier l'état du serveur
+                // Récupérer le serveur complet depuis la base de données pour avoir le statut actuel
+                const serverInfo = db.getServerByName(embedMsg.name);
+                
+                // Si le serveur est en maintenance, ne pas mettre à jour son statut
+                if (serverInfo && serverInfo.status === 'maintenance') {
+                    // Pour les serveurs en maintenance, on utilise un statusInfo spécial
+                    const statusInfo = {
+                        online: false,
+                        players: { online: 0, max: 0 },
+                        version: 'Inconnu',
+                        ping: 0,
+                        favicon: null
+                    };
+                    
+                    // Créer le nouvel embed avec toutes les informations du serveur
+                    const server = {
+                        id: embedMsg.server_id,
+                        name: embedMsg.name,
+                        ip: embedMsg.ip,
+                        port: embedMsg.port,
+                        modpack_version: embedMsg.modpack_version,
+                        modpack_link: embedMsg.modpack_link,
+                        status: 'maintenance'
+                    };
+                    
+                    const embed = createServerStatusEmbed(server, statusInfo);
+                    
+                    // Essayer de mettre à jour le message existant
+                    try {
+                        const message = await channel.messages.fetch(embedMsg.message_id);
+                        await message.edit({ embeds: [embed] });
+                        log(`Embed mis à jour pour le serveur "${embedMsg.name}" (en maintenance) dans le salon #${channel.name}`);
+                    } catch (messageError) {
+                        // Si le message n'existe plus, en créer un nouveau
+                        log(`Message introuvable pour l'embed ${embedMsg.id}, création d'un nouveau message...`);
+                        const newMessage = await channel.send({ embeds: [embed] });
+                        db.updateEmbedMessageId(embedMsg.id, newMessage.id);
+                        log(`Nouvel embed créé pour le serveur "${embedMsg.name}" (en maintenance) dans le salon #${channel.name}`);
+                    }
+                    
+                    continue;
+                }
+                
+                // Pour les serveurs qui ne sont pas en maintenance, vérifier leur état réel
                 const statusInfo = await checkServerStatus(embedMsg.ip, embedMsg.port);
                 
                 // Mettre à jour le statut dans la base de données
@@ -86,7 +129,8 @@ async function updateAllServerEmbeds() {
                     ip: embedMsg.ip,
                     port: embedMsg.port,
                     modpack_version: embedMsg.modpack_version,
-                    modpack_link: embedMsg.modpack_link
+                    modpack_link: embedMsg.modpack_link,
+                    status: newStatus
                 };
                 
                 const embed = createServerStatusEmbed(server, statusInfo);
