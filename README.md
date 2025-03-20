@@ -1,6 +1,6 @@
-# Bot Discord pour Serveurs Minecraft
+# Monicraft - Bot Discord pour Serveurs Minecraft
 
-Un bot Discord avancé pour gérer plusieurs serveurs Minecraft et créer des annonces avec des embeds.
+Un bot Discord avancé pour gérer plusieurs serveurs Minecraft avec support pour les modpacks et création d'annonces automatiques.
 
 ## 🔧 Fonctionnalités
 
@@ -189,7 +189,7 @@ Crée une annonce manuelle avec un embed personnalisé (pour les événements, m
 ## 📚 Dépendances Principales
 
 - [discord.js](https://discord.js.org/) - API Discord pour Node.js
-- [mcstatus](https://www.npmjs.com/package/mcstatus) - Utilitaire pour interagir avec les serveurs Minecraft
+- [node-mcstatus](https://www.npmjs.com/package/node-mcstatus) - Utilitaire pour interagir avec les serveurs Minecraft
 - [better-sqlite3](https://www.npmjs.com/package/better-sqlite3) - Base de données SQLite pour Node.js
 
 ## 🔧 Mode Développement
